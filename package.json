@@ -1,0 +1,38 @@
+{
+  "name": "mconf",
+  "version": "0.0.1",
+  "description": "Micro config",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test/ --recursive --reporter spec",
+    "cover": "istanbul cover -- _mocha test/ --recursive --reporter spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ViGo5190/mconf.git"
+  },
+  "keywords": [
+    "configuration",
+    "environment",
+    "env",
+    "config-node",
+    "node-config",
+    "configuration",
+    "config",
+    "conf"
+  ],
+  "author": "Stanislav Gumeniuk <i@vigo.su>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ViGo5190/mconf/issues"
+  },
+  "homepage": "https://github.com/ViGo5190/mconf#readme",
+  "dependencies": {
+    "lodash": "^4.3.0"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.4.5",
+    "mockery": "^1.4.0"
+  }
+}
