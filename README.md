@@ -1,6 +1,8 @@
 # mconf
 =======
 
+[![Build Status](https://travis-ci.org/ViGo5190/mconf.svg?branch=master)](https://travis-ci.org/ViGo5190/mconf)
+
 Simple config for nodejs.
 
 # Using:
