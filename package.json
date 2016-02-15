@@ -5,7 +5,11 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha test/ --recursive --reporter spec",
-    "cover": "istanbul cover -- _mocha test/ --recursive --reporter spec"
+    "cover": "istanbul cover -- _mocha test/ --recursive --reporter spec",
+    "coveralls": "cat ./coverage/lcov.info | ./node_modules/.bin/coveralls"
+  },
+  "engines": {
+    "node": ">=4.0.0"
   },
   "repository": {
     "type": "git",
@@ -32,6 +36,8 @@
   },
   "devDependencies": {
     "chai": "^3.5.0",
+    "coveralls": "^2.11.6",
+    "istanbul": "^0.4.2",
     "mocha": "^2.4.5",
     "mockery": "^1.4.0"
   }
