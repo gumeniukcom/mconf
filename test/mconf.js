@@ -167,7 +167,8 @@ describe('services/cache', function () {
             mockery.registerMock('../config/production', {
                 foo: "bar",
                 first: {
-                    name: 'value'
+                    name: 'value',
+                    bar: 'foo'
                 }
             });
 

@@ -5,9 +5,6 @@
 
 "use strict";
 
-var _ = require('lodash');
-var fs = require('fs');
-
 class Config {
 
     constructor(pathToConfigDir, availableConfigs) {
@@ -94,7 +91,7 @@ class Config {
                     throw new Error('Config: config "'+configName+'" not found');
                 }
 
-                _.assign(result, config);
+                Object.assign(result, config);
 
                 result.environment = configName;
             });

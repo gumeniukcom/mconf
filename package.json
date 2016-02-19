@@ -31,9 +31,7 @@
     "url": "https://github.com/ViGo5190/mconf/issues"
   },
   "homepage": "https://github.com/ViGo5190/mconf#readme",
-  "dependencies": {
-    "lodash": "^4.3.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "chai": "^3.5.0",
     "coveralls": "^2.11.6",
