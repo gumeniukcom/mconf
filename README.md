@@ -35,3 +35,14 @@ By default using `NODE_ENV`, but if you need to use another environment name:
       .setEnv('YOUR_ENV_NAME')
       .getConfig();
    ```
+# Merge config strategy
+
+By default using `deep merge` strategy. But if you want non deep merge ( rewrite), you should use:
+
+   ```
+   var config = new Config(__dirname,['production', 'develop']);
+   module.exports = config
+      .setDeepMerge(false)
+      .getConfig();
+   ```
+

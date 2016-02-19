@@ -163,7 +163,37 @@ describe('services/cache', function () {
         });
 
 
-        it('return really union config', function() {
+        it('return really union config with deep merge', function() {
+            mockery.registerMock('../config/production', {
+                foo: "bar",
+                first: {
+                    name: 'value',
+                    bar: 'foo'
+                }
+            });
+
+            mockery.registerMock('../config/develop', {
+                bar: "foo",
+                first: {
+                    name: 'new value'
+                }
+            });
+
+            var expectedConfig = {
+                foo: "bar",
+                first: {
+                    name: 'new value',
+                    bar: 'foo'
+                },
+                bar: "foo",
+                "environment": "develop"
+
+            };
+            var config = new Config(default_path,default_available_config);
+            assert.deepEqual(config.getConfig(), expectedConfig);
+        });
+
+        it('return really union config with undeep merge', function() {
             mockery.registerMock('../config/production', {
                 foo: "bar",
                 first: {
@@ -189,7 +219,7 @@ describe('services/cache', function () {
 
             };
             var config = new Config(default_path,default_available_config);
-            assert.deepEqual(config.getConfig(), expectedConfig);
+            assert.deepEqual(config.setDeepMerge(false).getConfig(), expectedConfig);
         });
     })
 

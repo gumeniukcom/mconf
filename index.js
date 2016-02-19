@@ -5,6 +5,8 @@
 
 "use strict";
 
+var merger = require('extend');
+
 class Config {
 
     constructor(pathToConfigDir, availableConfigs) {
@@ -16,10 +18,16 @@ class Config {
         this.availableConfigs = availableConfigs;// || ['production', 'rc', 'develop'];
         this.configHierarchy = ['production'];
         this.pathToConfigDir = pathToConfigDir;
+        this.deepMerge = true;
     }
 
     setEnvName(envName) {
         this.envName = envName;
+        return this;
+    }
+
+    setDeepMerge(deep) {
+        this.deepMerge = deep;
         return this;
     }
 
@@ -82,6 +90,7 @@ class Config {
     _initConfig() {
         var result = {};
         var pathToConfigDir = this.pathToConfigDir;
+        var self = this;
         this.configHierarchy
             .forEach(function (configName) {
                 var path = pathToConfigDir + '/' + configName;
@@ -91,7 +100,7 @@ class Config {
                     throw new Error('Config: config "'+configName+'" not found');
                 }
 
-                Object.assign(result, config);
+                merger(self.deepMerge?true:false,result, config);
 
                 result.environment = configName;
             });
