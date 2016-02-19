@@ -1,7 +1,7 @@
 {
   "name": "mconf",
   "version": "0.2.0",
-  "description": "Micro config",
+  "description": "Micro config for nodejs projects.",
   "main": "index.js",
   "scripts": {
     "test": "mocha test/ --recursive --reporter spec",
