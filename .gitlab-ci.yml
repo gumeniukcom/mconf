@@ -1,0 +1,30 @@
+image: node:4
+
+before_script:
+  - node -v
+
+stages:
+  - build
+  - test
+  - cover
+
+job1:
+  stage: build
+  script:
+    - npm i
+
+job2:
+  stage: test
+  script:
+    - npm i
+    - npm i mocha
+    - npm i istanbul
+    - npm test
+
+job3:
+  stage: cover
+  script:
+    - npm i
+    - npm i mocha
+    - npm i istanbul
+    - npm run cover
