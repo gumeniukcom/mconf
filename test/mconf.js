@@ -8,6 +8,7 @@ var mockery = require('mockery');
 var CONST_GLOBAL_ENV_NAME = 'NODE_ENV';
 
 var default_path = '../config';
+var default_path_to_mock_config = './test_mocks/configs';
 var default_available_config = ['production', 'rc', 'develop'];
 
 describe('services/cache', function () {
@@ -34,29 +35,39 @@ describe('services/cache', function () {
     });
 
 
-    describe('Check constructor', function(){
-        it('return error on not setted path to config dir', function(){
-            assert.throw(function(){new Config()},'Need set path to config dir');
+    describe('Check constructor', function () {
+        it('return error on not setted path to config dir', function () {
+            assert.throw(function () {
+                new Config()
+            }, 'Need set path to config dir');
         });
 
-        it('return error on not setted available configs', function(){
+        it('return error on not setted available configs', function () {
             var path = '../config/';
-            assert.throw(function(){new Config(path)},'Need set available configs');
+            assert.throw(function () {
+                new Config(path)
+            }, 'Need set available configs');
         });
 
-        it('return error on  available configs are not array ( object given )', function(){
+        it('return error on  available configs are not array ( object given )', function () {
             var path = '../config/';
-            assert.throw(function(){new Config(path, {foo: 'bar'})},'Available configs should be an array.');
+            assert.throw(function () {
+                new Config(path, {foo: 'bar'})
+            }, 'Available configs should be an array.');
         });
 
-        it('return error on  available configs are not array ( string given )', function(){
+        it('return error on  available configs are not array ( string given )', function () {
             var path = '../config/';
-            assert.throw(function(){new Config(path, 'foo')},'Available configs should be an array');
+            assert.throw(function () {
+                new Config(path, 'foo')
+            }, 'Available configs should be an array');
         });
 
-        it('return error on  available configs are empty array', function(){
+        it('return error on  available configs are empty array', function () {
             var path = '../config/';
-            assert.throw(function(){new Config(path, [])},'Available configs should be an array with more than 0 elements.');
+            assert.throw(function () {
+                new Config(path, [])
+            }, 'Available configs should be an array with more than 0 elements.');
         });
 
     });
@@ -66,7 +77,7 @@ describe('services/cache', function () {
 
             process.env[CONST_GLOBAL_ENV_NAME] = 'test';
 
-            var config = new Config(default_path,default_available_config);
+            var config = new Config(default_path, default_available_config);
 
             assert.typeOf(config.getEnvironmentFromGlobalEnv(), 'string');
         });
@@ -74,7 +85,7 @@ describe('services/cache', function () {
 
             process.env[CONST_GLOBAL_ENV_NAME] = 'test';
 
-            var config = new Config(default_path,default_available_config);
+            var config = new Config(default_path, default_available_config);
 
             assert.equal(config.getEnvironmentFromGlobalEnv(), 'test');
         });
@@ -85,7 +96,7 @@ describe('services/cache', function () {
 
             process.env[CONST_GLOBAL_ENV_NAME_NEW] = 'test_new_value';
 
-            var config = new Config(default_path,default_available_config);
+            var config = new Config(default_path, default_available_config);
 
             assert.equal(config.setEnvName(CONST_GLOBAL_ENV_NAME_NEW).getEnvironmentFromGlobalEnv(), 'test_new_value');
         });
@@ -93,25 +104,25 @@ describe('services/cache', function () {
 
     describe('Check environment hierarchy', function () {
         it('return boolean', function () {
-            var config = new Config(default_path,default_available_config);
+            var config = new Config(default_path, default_available_config);
 
             assert.typeOf(config._isEnvironmentAvailable('foo'), 'boolean');
         });
 
         it('return true for environment existing in hierarchy', function () {
-            var config = new Config(default_path,default_available_config);
+            var config = new Config(default_path, default_available_config);
 
             assert.equal(config._isEnvironmentAvailable('production'), true);
         });
 
         it('return false for environment not existing in hierarchy', function () {
-            var config = new Config(default_path,default_available_config);
+            var config = new Config(default_path, default_available_config);
 
             assert.equal(config._isEnvironmentAvailable('foo'), false);
         });
 
         it('adding env to hierarchy', function () {
-            var config = new Config(default_path,default_available_config);
+            var config = new Config(default_path, default_available_config);
             config.configHierarchy = ['foo'];
 
             var expectedConfigHierarchy = ['foo', 'bar'];
@@ -138,7 +149,7 @@ describe('services/cache', function () {
                 }
             });
 
-            var config = new Config(default_path,default_available_config);
+            var config = new Config(default_path, default_available_config);
             assert.isObject(config.getConfig());
         });
 
@@ -155,15 +166,39 @@ describe('services/cache', function () {
 
             process.env[CONST_GLOBAL_ENV_NAME_NEW] = 'rc';
 
-            var config = new Config(default_path,default_available_config);
+            var config = new Config(default_path, default_available_config);
 
             config.setEnvName(CONST_GLOBAL_ENV_NAME_NEW);
 
-            assert.throw(function(){config.getConfig()},'Config: config "rc" not found');
+            assert.throw(function () {
+                config.getConfig()
+            }, 'Mconf: config "rc" not found in ../config/rc');
+        });
+
+        it('throw error on error in config', function () {
+
+            mockery.registerMock(default_path_to_mock_config + '/production', {
+                foo: "bar",
+                first: {
+                    name: 'value'
+                }
+            });
+
+            var CONST_GLOBAL_ENV_NAME_NEW = 'MAIL_ENV';
+
+            process.env[CONST_GLOBAL_ENV_NAME_NEW] = 'develop';
+
+            var config = new Config(default_path_to_mock_config, default_available_config);
+
+            config.setEnvName(CONST_GLOBAL_ENV_NAME_NEW);
+
+            assert.throw(function () {
+                config.getConfig()
+            }, 'Mconf: some error in your config "develop" not found in ./test_mocks/configs/develop');
         });
 
 
-        it('return really union config with deep merge', function() {
+        it('return really union config with deep merge', function () {
             mockery.registerMock('../config/production', {
                 foo: "bar",
                 first: {
@@ -189,11 +224,11 @@ describe('services/cache', function () {
                 "environment": "develop"
 
             };
-            var config = new Config(default_path,default_available_config);
+            var config = new Config(default_path, default_available_config);
             assert.deepEqual(config.getConfig(), expectedConfig);
         });
 
-        it('return really union config with undeep merge', function() {
+        it('return really union config with undeep merge', function () {
             mockery.registerMock('../config/production', {
                 foo: "bar",
                 first: {
@@ -218,7 +253,7 @@ describe('services/cache', function () {
                 "environment": "develop"
 
             };
-            var config = new Config(default_path,default_available_config);
+            var config = new Config(default_path, default_available_config);
             assert.deepEqual(config.setDeepMerge(false).getConfig(), expectedConfig);
         });
     })

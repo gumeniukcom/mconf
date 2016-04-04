@@ -97,10 +97,13 @@ class Config {
                 try {
                     var config = require(path);
                 } catch (e) {
-                    throw new Error('Config: config "'+configName+'" not found');
+                    if (e.code == 'MODULE_NOT_FOUND') {
+                        throw new Error('Mconf: config "' + configName + '" not found in ' + path);
+                    }
+                    throw new Error('Mconf: some error in your config "' + configName + '" not found in ' + path);
                 }
 
-                merger(self.deepMerge?true:false,result, config);
+                merger(self.deepMerge ? true : false, result, config);
 
                 result.environment = configName;
             });
