@@ -97,7 +97,7 @@ class Config {
                 try {
                     var config = require(path);
                 } catch (e) {
-                    throw new Error('Config: config "'+configName+'" not found');
+                    throw new Error('Config: "' + path + '" not found');
                 }
 
                 merger(self.deepMerge?true:false,result, config);
