@@ -2,13 +2,16 @@
  * Stanislav Gumeniuk i@vigo.su
  */
 
+require('babel-core');
+require('babel-register')();
+
 var assert = require('chai').assert;
 var mockery = require('mockery');
 
 var CONST_GLOBAL_ENV_NAME = 'NODE_ENV';
 
 var default_path = '../config';
-var default_path_to_mock_config = './test_mocks/configs';
+var default_path_to_mock_config = '../test_mocks/configs';
 var default_available_config = ['production', 'rc', 'develop'];
 
 describe('services/cache', function () {
@@ -22,7 +25,7 @@ describe('services/cache', function () {
             useCleanCache: true
         });
 
-        Config = require('../index');
+        Config = require('../src/index');
     });
 
 
@@ -194,7 +197,7 @@ describe('services/cache', function () {
 
             assert.throw(function () {
                 config.getConfig()
-            }, 'Mconf: some error in your config "develop" not found in ./test_mocks/configs/develop');
+            }, 'Mconf: some error in your config "develop" not found in '+default_path_to_mock_config+'/develop');
         });
 
 

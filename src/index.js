@@ -3,16 +3,16 @@
  */
 
 
-"use strict";
+// "use strict";
 
-var merger = require('extend');
+import merger from 'extend';
 
 class Config {
 
-    constructor(pathToConfigDir, availableConfigs) {
+    constructor(...args) {
 
-        pathToConfigDir = Config._clearPathToConfigDir(pathToConfigDir);
-        availableConfigs = Config._clearAvailableConfigs(availableConfigs);
+        let pathToConfigDir = Config._clearPathToConfigDir(args[0]);
+        let availableConfigs = Config._clearAvailableConfigs(args[1]);
 
         this.envName = 'NODE_ENV';
         this.availableConfigs = availableConfigs;// || ['production', 'rc', 'develop'];
@@ -33,7 +33,7 @@ class Config {
 
 
     getConfig() {
-        var env = this.getEnvironmentFromGlobalEnv();
+        let env = this.getEnvironmentFromGlobalEnv();
         if (!this._isEnvironmentAvailable(env)) {
             env = 'develop';
         }
@@ -42,7 +42,7 @@ class Config {
     }
 
     getEnvironmentFromGlobalEnv() {
-        var systemProcess = null;
+        let systemProcess = null;
         try {
             systemProcess = process;
         } catch (e) {
@@ -88,12 +88,12 @@ class Config {
     }
 
     _initConfig() {
-        var result = {};
-        var pathToConfigDir = this.pathToConfigDir;
-        var self = this;
+        let result = {};
+        let pathToConfigDir = this.pathToConfigDir;
+
         this.configHierarchy
-            .forEach(function (configName) {
-                var path = pathToConfigDir + '/' + configName;
+            .forEach((configName) => {
+                let path = pathToConfigDir + '/' + configName;
                 try {
                     var config = require(path);
                 } catch (e) {
@@ -103,12 +103,13 @@ class Config {
                     throw new Error('Mconf: some error in your config "' + configName + '" not found in ' + path);
                 }
 
-                merger(self.deepMerge ? true : false, result, config);
+                merger(this.deepMerge ? true : false, result, config);
 
                 result.environment = configName;
             });
         return result;
     }
 }
+
 
 module.exports = Config;
