@@ -14,7 +14,9 @@ var default_path = '../config';
 var default_path_to_mock_config = '../test_mocks/configs';
 var default_available_config = ['production', 'rc', 'develop'];
 
-describe('services/cache', function () {
+import Config from '../src/index';
+
+describe('services/mconf', function () {
 
     var config;
 
@@ -25,7 +27,7 @@ describe('services/cache', function () {
             useCleanCache: true
         });
 
-        Config = require('../src/index');
+
     });
 
 
@@ -259,6 +261,52 @@ describe('services/cache', function () {
             var config = new Config(default_path, default_available_config);
             assert.deepEqual(config.setDeepMerge(false).getConfig(), expectedConfig);
         });
-    })
+    });
+
+    describe('Check old es****', function () {
+        it('return object', function () {
+
+            const ConfigOld = require('../src/');
+
+            mockery.registerMock('../config/production', {
+                foo: "bar",
+                first: {
+                    name: 'value'
+                }
+            });
+
+            mockery.registerMock('../config/develop', {
+                bar: "foo",
+                first: {
+                    name: 'new value'
+                }
+            });
+
+            var config = new ConfigOld.default(default_path, default_available_config);
+            assert.isObject(config.getConfig());
+        });
+
+        it('return object #2', function () {
+
+            const ConfigOld = require('../src/').default;
+
+            mockery.registerMock('../config/production', {
+                foo: "bar",
+                first: {
+                    name: 'value'
+                }
+            });
+
+            mockery.registerMock('../config/develop', {
+                bar: "foo",
+                first: {
+                    name: 'new value'
+                }
+            });
+
+            var config = new ConfigOld(default_path, default_available_config);
+            assert.isObject(config.getConfig());
+        });
+    });
 
 });

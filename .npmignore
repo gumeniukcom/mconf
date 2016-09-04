@@ -6,3 +6,7 @@ test_mocks
 .git
 coverage
 src/
+.coveralls.yml
+.gitlab-ci.yml
+.travis.yml
+circle.yml

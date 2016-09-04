@@ -12,8 +12,10 @@ Simple config for nodejs.
 * create directory with configurations
 * create files `production.js` and `develop.js` and put them into created directory
 * create `index.js` file with:
+
+  es5 and older
   ```
-  var Config = require('mconf');
+  var Config = require('mconf').default;
 
   if (!__dirname) {
       var __dirname = require('fs').workingDirectory;
@@ -22,6 +24,20 @@ Simple config for nodejs.
   var config = new Config(__dirname,['production', 'develop']);
   module.exports = config.getConfig();
   ```
+  
+  es2016+
+  
+  ```
+    import Config from 'mconf';
+  
+    if (!__dirname) {
+        var __dirname = require('fs').workingDirectory;
+    }
+  
+    let config = new Config(__dirname,['production', 'develop']);
+    module.exports = config.getConfig();
+    ```
+  
 * run your node application with export env : `export NODE_ENV=production` for production env.
 * By default will be used `develop` config.
 

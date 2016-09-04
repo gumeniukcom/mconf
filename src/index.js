@@ -3,16 +3,16 @@
  */
 
 
-// "use strict";
+"use strict";
 
 import merger from 'extend';
 
-class Config {
+export default class {
 
     constructor(...args) {
 
-        let pathToConfigDir = Config._clearPathToConfigDir(args[0]);
-        let availableConfigs = Config._clearAvailableConfigs(args[1]);
+        let pathToConfigDir = clearPathToConfigDir(args[0]);
+        let availableConfigs = clearAvailableConfigs(args[1]);
 
         this.envName = 'NODE_ENV';
         this.availableConfigs = availableConfigs;// || ['production', 'rc', 'develop'];
@@ -51,33 +51,6 @@ class Config {
         return systemProcess.env[this.envName];
     }
 
-    static _clearPathToConfigDir(pathToConfigDir) {
-        if (!pathToConfigDir) {
-            throw new Error('Need set path to config dir');
-        }
-        if (pathToConfigDir.substr(-1) === '/') {
-            pathToConfigDir = pathToConfigDir.substr(0, pathToConfigDir.length - 1);
-        }
-
-        return pathToConfigDir;
-    }
-
-    static _clearAvailableConfigs(availableConfigs) {
-        if (!availableConfigs) {
-            throw new Error('Need set available configs');
-        }
-
-        if (!(availableConfigs instanceof Array)) {
-            throw new Error('Available configs should be an array.');
-        }
-
-        if (availableConfigs.length === 0) {
-            throw new Error('Available configs should be an array with more than 0 elements.');
-        }
-
-        return availableConfigs;
-    }
-
     _isEnvironmentAvailable(environment) {
         return this.availableConfigs.indexOf(environment) !== -1;
     }
@@ -111,5 +84,29 @@ class Config {
     }
 }
 
+function clearPathToConfigDir(pathToConfigDir) {
+    if (!pathToConfigDir) {
+        throw new Error('Need set path to config dir');
+    }
+    if (pathToConfigDir.substr(-1) === '/') {
+        pathToConfigDir = pathToConfigDir.substr(0, pathToConfigDir.length - 1);
+    }
 
-module.exports = Config;
+    return pathToConfigDir;
+}
+
+function clearAvailableConfigs(availableConfigs) {
+    if (!availableConfigs) {
+        throw new Error('Need set available configs');
+    }
+
+    if (!(availableConfigs instanceof Array)) {
+        throw new Error('Available configs should be an array.');
+    }
+
+    if (availableConfigs.length === 0) {
+        throw new Error('Available configs should be an array with more than 0 elements.');
+    }
+
+    return availableConfigs;
+}
