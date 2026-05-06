@@ -238,11 +238,21 @@ describe('Mconf config loading', () => {
 
   it('falls back to reference sharing for values structuredClone cannot copy', async () => {
     const dir = makeConfigDir({
-      // Functions and WeakMaps are not cloneable. structuredClone throws on
-      // the WeakMap; the loader catches and shares the reference rather than
-      // failing the entire load.
+      // Three non-cloneable cases that exercise different code paths:
+      //   * `cache` — a WeakMap whose typeof is 'object'; cloneValue calls
+      //      structuredClone, the call throws, the catch branch returns
+      //      the original reference.
+      //   * `wrapped` — a plain object that holds a function. structuredClone
+      //      throws on the whole object because of the nested function; the
+      //      whole object is ref-shared.
+      //   * `handler` — a top-level function. cloneValue's typeof guard
+      //      short-circuits without invoking structuredClone.
       'production.js':
-        'module.exports = { cache: new WeakMap(), handler: function fn(x) { return x; } };\n',
+        'module.exports = {\n' +
+        '  cache: new WeakMap(),\n' +
+        '  wrapped: { fn: function inner(x) { return x + 1; } },\n' +
+        '  handler: function top(x) { return x; },\n' +
+        '};\n',
       'develop.js': 'module.exports = { other: true };\n',
     });
     try {
@@ -250,12 +260,25 @@ describe('Mconf config loading', () => {
         process.env.NODE_ENV = 'develop';
         const cfg = new Mconf(dir, ['production', 'develop']).getConfig();
         assert.ok(cfg.cache instanceof WeakMap);
+        assert.equal(typeof cfg.wrapped.fn, 'function');
+        assert.equal(cfg.wrapped.fn(1), 2);
         assert.equal(typeof cfg.handler, 'function');
         assert.equal(cfg.handler('hi'), 'hi');
       });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+
+  it('isolates array references in shallow-merge mode', async () => {
+    await withCleanEnv(() => {
+      process.env.NODE_ENV = 'develop';
+      const m = new Mconf(CONFIGS_DIR, ['production', 'develop'], { deepMerge: false });
+      const a = m.getConfig();
+      a.list.push('shallow-tampered');
+      const b = m.getConfig();
+      assert.ok(!b.list.includes('shallow-tampered'));
+    });
   });
 
   it('throws on an empty config dir', async () => {
