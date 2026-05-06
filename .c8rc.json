@@ -1,0 +1,4 @@
+{
+  "include": ["src/**/*.js"],
+  "exclude": ["dist/**", "test/**", "scripts/**", "node_modules/**"]
+}

@@ -1,9 +1,16 @@
-.idea/
-
 node_modules/
-
-coverage/
-
 dist/
+coverage/
+.nyc_output/
 
-npm-debug.log
+*.log
+npm-debug.log*
+
+.DS_Store
+.idea/
+.vscode/
+.claude/
+
+.env
+.env.*
+!.env.example

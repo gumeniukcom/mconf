@@ -1,0 +1,7 @@
+dist/
+coverage/
+node_modules/
+.nyc_output/
+package-lock.json
+CHANGELOG.md
+CLAUDE.md
