@@ -10,7 +10,7 @@ const requireFromHere = createRequire(import.meta.url);
 /**
  * @typedef {Object} MconfOptions
  * @property {string} [envName='NODE_ENV']      Name of the env var to read.
- * @property {boolean} [deepMerge=true]         Whether to deep-merge layers; otherwise shallow.
+ * @property {boolean} [deepMerge=true]         Whether to deep-merge layers; otherwise top-level only.
  * @property {string} [baseEnv='production']    Layer applied before the resolved env. Must be in `availableEnvs`.
  * @property {string} [fallbackEnv='develop']   Used when the resolved env is not in `availableEnvs`. Must be in `availableEnvs`.
  * @property {boolean} [strict=true]            Throw on unknown env (default). Set to `false` for the legacy silent fallback.
@@ -27,12 +27,19 @@ const requireFromHere = createRequire(import.meta.url);
  * The merged result is augmented with a reserved `environment` key naming the
  * layer applied last. Config layers must not export their own `environment`
  * key — the loader throws on collision.
+ *
+ * Returned objects never share references with Node's module cache: every
+ * call to `getConfig()` returns a freshly-cloned tree.
  */
 export class Mconf {
   /** @type {string} */
   #configDir;
   /** @type {readonly string[]} */
   #availableEnvs;
+  /** @type {string} */
+  #envName;
+  /** @type {boolean} */
+  #deepMerge;
   /** @type {string} */
   #baseEnv;
   /** @type {string} */
@@ -64,8 +71,12 @@ export class Mconf {
 
     const baseEnv = options.baseEnv ?? 'production';
     const fallbackEnv = options.fallbackEnv ?? 'develop';
+    const envName = options.envName ?? 'NODE_ENV';
     assertSafeName(baseEnv, 'options.baseEnv');
     assertSafeName(fallbackEnv, 'options.fallbackEnv');
+    if (typeof envName !== 'string' || envName.length === 0) {
+      throw new TypeError('Mconf: options.envName must be a non-empty string');
+    }
     if (!availableEnvs.includes(baseEnv)) {
       throw new TypeError(
         `Mconf: options.baseEnv "${baseEnv}" must be one of availableEnvs [${availableEnvs.join(', ')}]`,
@@ -79,8 +90,8 @@ export class Mconf {
 
     this.#configDir = configDir.replace(/[/\\]+$/, '');
     this.#availableEnvs = Object.freeze([...availableEnvs]);
-    this.envName = options.envName ?? 'NODE_ENV';
-    this.deepMerge = options.deepMerge ?? true;
+    this.#envName = envName;
+    this.#deepMerge = options.deepMerge ?? true;
     this.#baseEnv = baseEnv;
     this.#fallbackEnv = fallbackEnv;
     this.#strict = options.strict ?? true;
@@ -95,7 +106,7 @@ export class Mconf {
     if (typeof name !== 'string' || name.length === 0) {
       throw new TypeError('Mconf: envName must be a non-empty string');
     }
-    this.envName = name;
+    this.#envName = name;
     return this;
   }
 
@@ -105,7 +116,7 @@ export class Mconf {
    * @returns {this}
    */
   setDeepMerge(deep) {
-    this.deepMerge = Boolean(deep);
+    this.#deepMerge = Boolean(deep);
     return this;
   }
 
@@ -114,7 +125,7 @@ export class Mconf {
    * @returns {string | undefined}
    */
   getEnvironmentFromGlobalEnv() {
-    return process.env[this.envName];
+    return process.env[this.#envName];
   }
 
   /**
@@ -138,7 +149,7 @@ export class Mconf {
     let result = {};
     for (const name of hierarchy) {
       const layer = this.#loadLayer(name);
-      result = this.deepMerge ? mergeDeep(result, layer) : Object.assign({}, result, layer);
+      result = this.#deepMerge ? mergeDeep(result, layer) : shallowMerge(result, layer);
     }
     result.environment = hierarchy[hierarchy.length - 1];
     return result;
@@ -173,7 +184,7 @@ export class Mconf {
     }
     for (const reserved of RESERVED_RESULT_KEYS) {
       if (Object.hasOwn(value, reserved)) {
-        throw new Error(
+        throw new TypeError(
           `Mconf: config "${name}" must not declare reserved key "${reserved}" — it is injected by getConfig()`,
         );
       }
@@ -184,7 +195,8 @@ export class Mconf {
 
 /**
  * Deep-merge `source` on top of `target` into a freshly allocated object.
- * Neither argument is mutated.
+ * Neither argument is mutated and no value from `source` is shared by
+ * reference with the result for cloneable types.
  * @param {Record<string, unknown> | unknown} target
  * @param {Record<string, unknown>} source
  * @returns {Record<string, unknown>}
@@ -197,10 +209,42 @@ function mergeDeep(target, source) {
     if (isPlainObject(value)) {
       out[key] = mergeDeep(isPlainObject(out[key]) ? out[key] : {}, value);
     } else {
-      out[key] = value;
+      out[key] = cloneValue(value);
     }
   }
   return out;
+}
+
+/**
+ * Shallow merge: top-level keys overwrite wholesale, but values are still
+ * cloned so the caller cannot mutate Node's module cache via the result.
+ * @param {Record<string, unknown>} target
+ * @param {Record<string, unknown>} source
+ * @returns {Record<string, unknown>}
+ */
+function shallowMerge(target, source) {
+  const out = { ...target };
+  for (const key of Object.keys(source)) {
+    if (FORBIDDEN_KEYS.has(key)) continue;
+    out[key] = cloneValue(source[key]);
+  }
+  return out;
+}
+
+/**
+ * Clone a value safely for inclusion in the merged config. Falls back to
+ * returning the original reference when the value is a type `structuredClone`
+ * cannot copy (e.g. a function).
+ * @param {unknown} value
+ * @returns {unknown}
+ */
+function cloneValue(value) {
+  if (value === null || typeof value !== 'object') return value;
+  try {
+    return structuredClone(value);
+  } catch {
+    return value;
+  }
 }
 
 /**

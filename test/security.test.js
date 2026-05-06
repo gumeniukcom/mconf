@@ -14,6 +14,31 @@ describe('Mconf security', () => {
     assert.throws(() => new Mconf('/tmp', ['']), /availableEnvs entry .* is invalid/);
   });
 
+  it('does not pollute Object.prototype via shallow-merged configs', async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'mconf-proto-shallow-'));
+    try {
+      writeFileSync(
+        path.join(dir, 'package.json'),
+        JSON.stringify({ type: 'commonjs', private: true }),
+      );
+      writeFileSync(path.join(dir, 'production.js'), 'module.exports = { ok: true };\n');
+      writeFileSync(
+        path.join(dir, 'develop.js'),
+        `module.exports = JSON.parse('{"__proto__":{"shallowPolluted":true}}');\n`,
+      );
+
+      await withCleanEnv(() => {
+        process.env.NODE_ENV = 'develop';
+        const cfg = new Mconf(dir, ['production', 'develop'], { deepMerge: false }).getConfig();
+        assert.equal(cfg.shallowPolluted, undefined);
+        assert.equal({}.shallowPolluted, undefined);
+        assert.equal(Object.prototype.shallowPolluted, undefined);
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('does not pollute Object.prototype via merged configs', async () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), 'mconf-proto-'));
     try {

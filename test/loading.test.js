@@ -201,7 +201,7 @@ describe('Mconf config loading', () => {
     });
   });
 
-  it('does not leak nested-object references between getConfig() calls', async () => {
+  it('does not leak nested-object references between getConfig() calls (deep)', async () => {
     await withCleanEnv(() => {
       process.env.NODE_ENV = 'develop';
       const m = new Mconf(CONFIGS_DIR, ['production', 'develop']);
@@ -210,6 +210,52 @@ describe('Mconf config loading', () => {
       const b = m.getConfig();
       assert.equal(b.feature.flags.injected, undefined);
     });
+  });
+
+  it('does not leak nested-object references between getConfig() calls (shallow)', async () => {
+    await withCleanEnv(() => {
+      process.env.NODE_ENV = 'develop';
+      const m = new Mconf(CONFIGS_DIR, ['production', 'develop'], { deepMerge: false });
+      const a = m.getConfig();
+      // In shallow mode the `feature` from develop replaces production's wholesale.
+      // Mutating it must not bleed into the next call (i.e. into Node's module cache).
+      a.feature.injected = 'tampered';
+      const b = m.getConfig();
+      assert.equal(b.feature.injected, undefined);
+    });
+  });
+
+  it('does not leak array references between getConfig() calls', async () => {
+    await withCleanEnv(() => {
+      process.env.NODE_ENV = 'develop';
+      const m = new Mconf(CONFIGS_DIR, ['production', 'develop']);
+      const a = m.getConfig();
+      a.list.push('tampered');
+      const b = m.getConfig();
+      assert.ok(!b.list.includes('tampered'));
+    });
+  });
+
+  it('falls back to reference sharing for values structuredClone cannot copy', async () => {
+    const dir = makeConfigDir({
+      // Functions and WeakMaps are not cloneable. structuredClone throws on
+      // the WeakMap; the loader catches and shares the reference rather than
+      // failing the entire load.
+      'production.js':
+        'module.exports = { cache: new WeakMap(), handler: function fn(x) { return x; } };\n',
+      'develop.js': 'module.exports = { other: true };\n',
+    });
+    try {
+      await withCleanEnv(() => {
+        process.env.NODE_ENV = 'develop';
+        const cfg = new Mconf(dir, ['production', 'develop']).getConfig();
+        assert.ok(cfg.cache instanceof WeakMap);
+        assert.equal(typeof cfg.handler, 'function');
+        assert.equal(cfg.handler('hi'), 'hi');
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('throws on an empty config dir', async () => {

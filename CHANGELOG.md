@@ -33,10 +33,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `availableEnvs` and the `baseEnv`/`fallbackEnv` options are validated against
   `^[A-Za-z0-9][A-Za-z0-9_.-]*$`. Unsafe values throw `TypeError`.
 - Repeated `getConfig()` calls no longer mutate the instance's hierarchy state
-  and no longer share nested-object references with previously-returned configs.
-- Internal state (`configDir`, `availableEnvs`, `baseEnv`, `fallbackEnv`,
-  `strict`) is held in private fields and is no longer mutable from outside the
-  class.
+  and no longer share nested-object, array, or other references with
+  previously-returned configs (or with Node's module cache). Cloneable values
+  are passed through `structuredClone`; types that cannot be cloned (functions,
+  `WeakMap`, etc.) are still shared by reference.
+- Shallow merge (`deepMerge: false`) now also clones top-level values rather
+  than aliasing the loaded module; the shallow path used to leak references
+  into Node's module cache.
+- All instance state (`configDir`, `availableEnvs`, `envName`, `deepMerge`,
+  `baseEnv`, `fallbackEnv`, `strict`) is held in private fields. Mutation must
+  go through `setEnvName()` or `setDeepMerge()`; direct property writes have no
+  effect.
+- The reserved-key collision now throws `TypeError` (was `Error`).
 
 ### Added
 

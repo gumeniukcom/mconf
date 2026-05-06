@@ -20,21 +20,36 @@ describe('Mconf public API', () => {
     });
   });
 
-  it('does not expose private internals as enumerable properties', () => {
+  it('does not expose any enumerable instance state', () => {
     const m = new Mconf(CONFIGS_DIR, ['production', 'develop']);
-    const visible = Object.keys(m);
-    // configDir, availableEnvs, baseEnv, fallbackEnv, strict are private fields.
-    assert.deepEqual(visible.sort(), ['deepMerge', 'envName']);
+    assert.deepEqual(Object.keys(m), []);
+    // Sanity: nothing leaked via property descriptors either.
+    assert.deepEqual(Object.getOwnPropertyNames(m), []);
   });
 
-  it('coerces setDeepMerge argument to boolean', async () => {
+  it('coerces setDeepMerge argument to boolean (via observed merge behaviour)', async () => {
     await withCleanEnv(() => {
       process.env.NODE_ENV = 'develop';
       const m = new Mconf(CONFIGS_DIR, ['production', 'develop']);
-      m.setDeepMerge(0);
-      assert.equal(m.deepMerge, false);
+
+      // Truthy non-boolean → deep merge: nested production keys must survive.
       m.setDeepMerge('yes');
-      assert.equal(m.deepMerge, true);
+      assert.equal(m.getConfig().feature.flags.a, 1);
+
+      // Falsy non-boolean → shallow merge: production's `feature` is replaced.
+      m.setDeepMerge(0);
+      assert.equal(m.getConfig().feature.flags.a, undefined);
     });
+  });
+
+  it('options.envName is rejected when not a non-empty string', () => {
+    assert.throws(
+      () => new Mconf(CONFIGS_DIR, ['production', 'develop'], { envName: '' }),
+      /options\.envName must be a non-empty string/,
+    );
+    assert.throws(
+      () => new Mconf(CONFIGS_DIR, ['production', 'develop'], { envName: 42 }),
+      /options\.envName must be a non-empty string/,
+    );
   });
 });
