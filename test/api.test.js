@@ -9,11 +9,10 @@ describe('Mconf public API', () => {
     assert.equal(Mconf.name, 'Mconf');
   });
 
-  it('chains setEnvName, setEnv, and setDeepMerge', async () => {
+  it('chains setEnvName and setDeepMerge', async () => {
     await withCleanEnv(() => {
       process.env.APP_ENV = 'develop';
       const cfg = new Mconf(CONFIGS_DIR, ['production', 'develop'])
-        .setEnv('APP_ENV')
         .setEnvName('APP_ENV')
         .setDeepMerge(true)
         .getConfig();
@@ -21,11 +20,21 @@ describe('Mconf public API', () => {
     });
   });
 
-  it('coerces setDeepMerge argument to boolean', () => {
-    const m = new Mconf(CONFIGS_DIR, ['develop']);
-    m.setDeepMerge(0);
-    assert.equal(m.deepMerge, false);
-    m.setDeepMerge('yes');
-    assert.equal(m.deepMerge, true);
+  it('does not expose private internals as enumerable properties', () => {
+    const m = new Mconf(CONFIGS_DIR, ['production', 'develop']);
+    const visible = Object.keys(m);
+    // configDir, availableEnvs, baseEnv, fallbackEnv, strict are private fields.
+    assert.deepEqual(visible.sort(), ['deepMerge', 'envName']);
+  });
+
+  it('coerces setDeepMerge argument to boolean', async () => {
+    await withCleanEnv(() => {
+      process.env.NODE_ENV = 'develop';
+      const m = new Mconf(CONFIGS_DIR, ['production', 'develop']);
+      m.setDeepMerge(0);
+      assert.equal(m.deepMerge, false);
+      m.setDeepMerge('yes');
+      assert.equal(m.deepMerge, true);
+    });
   });
 });

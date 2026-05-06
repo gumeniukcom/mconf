@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 
 const NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.-]*$/;
 const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+const RESERVED_RESULT_KEYS = new Set(['environment']);
 
 const requireFromHere = createRequire(import.meta.url);
 
@@ -10,9 +11,9 @@ const requireFromHere = createRequire(import.meta.url);
  * @typedef {Object} MconfOptions
  * @property {string} [envName='NODE_ENV']      Name of the env var to read.
  * @property {boolean} [deepMerge=true]         Whether to deep-merge layers; otherwise shallow.
- * @property {string} [baseEnv='production']    Layer applied before the resolved env.
- * @property {string} [fallbackEnv='develop']   Used when the resolved env is not in availableEnvs.
- * @property {boolean} [strict=false]           Throw instead of falling back on unknown env.
+ * @property {string} [baseEnv='production']    Layer applied before the resolved env. Must be in `availableEnvs`.
+ * @property {string} [fallbackEnv='develop']   Used when the resolved env is not in `availableEnvs`. Must be in `availableEnvs`.
+ * @property {boolean} [strict=true]            Throw on unknown env (default). Set to `false` for the legacy silent fallback.
  */
 
 /**
@@ -22,8 +23,23 @@ const requireFromHere = createRequire(import.meta.url);
  * environment (matching the names passed in `availableEnvs`). On `getConfig()`,
  * the loader merges the `baseEnv` layer first and then the resolved env layer
  * on top of it, so common defaults can live in one place.
+ *
+ * The merged result is augmented with a reserved `environment` key naming the
+ * layer applied last. Config layers must not export their own `environment`
+ * key — the loader throws on collision.
  */
 export class Mconf {
+  /** @type {string} */
+  #configDir;
+  /** @type {readonly string[]} */
+  #availableEnvs;
+  /** @type {string} */
+  #baseEnv;
+  /** @type {string} */
+  #fallbackEnv;
+  /** @type {boolean} */
+  #strict;
+
   /**
    * @param {string} configDir              Absolute path to the directory holding the configs.
    * @param {string[]} availableEnvs        Whitelisted environment names; each must be a safe identifier.
@@ -42,19 +58,32 @@ export class Mconf {
     for (const name of availableEnvs) {
       assertSafeName(name, 'availableEnvs entry');
     }
+    if (new Set(availableEnvs).size !== availableEnvs.length) {
+      throw new TypeError('Mconf: availableEnvs must not contain duplicates');
+    }
 
     const baseEnv = options.baseEnv ?? 'production';
     const fallbackEnv = options.fallbackEnv ?? 'develop';
     assertSafeName(baseEnv, 'options.baseEnv');
     assertSafeName(fallbackEnv, 'options.fallbackEnv');
+    if (!availableEnvs.includes(baseEnv)) {
+      throw new TypeError(
+        `Mconf: options.baseEnv "${baseEnv}" must be one of availableEnvs [${availableEnvs.join(', ')}]`,
+      );
+    }
+    if (!availableEnvs.includes(fallbackEnv)) {
+      throw new TypeError(
+        `Mconf: options.fallbackEnv "${fallbackEnv}" must be one of availableEnvs [${availableEnvs.join(', ')}]`,
+      );
+    }
 
-    this.configDir = configDir.replace(/[/\\]+$/, '');
-    this.availableEnvs = [...availableEnvs];
+    this.#configDir = configDir.replace(/[/\\]+$/, '');
+    this.#availableEnvs = Object.freeze([...availableEnvs]);
     this.envName = options.envName ?? 'NODE_ENV';
     this.deepMerge = options.deepMerge ?? true;
-    this.baseEnv = baseEnv;
-    this.fallbackEnv = fallbackEnv;
-    this.strict = Boolean(options.strict);
+    this.#baseEnv = baseEnv;
+    this.#fallbackEnv = fallbackEnv;
+    this.#strict = options.strict ?? true;
   }
 
   /**
@@ -68,15 +97,6 @@ export class Mconf {
     }
     this.envName = name;
     return this;
-  }
-
-  /**
-   * Alias of {@link Mconf#setEnvName} kept for parity with older docs.
-   * @param {string} name
-   * @returns {this}
-   */
-  setEnv(name) {
-    return this.setEnvName(name);
   }
 
   /**
@@ -104,40 +124,32 @@ export class Mconf {
   getConfig() {
     const requestedEnv = this.getEnvironmentFromGlobalEnv();
     let env = requestedEnv;
-    if (!this._isEnvironmentAvailable(env)) {
-      if (this.strict) {
+    if (typeof env !== 'string' || !this.#availableEnvs.includes(env)) {
+      if (this.#strict) {
         throw new Error(
           `Mconf: environment ${JSON.stringify(requestedEnv)} is not in availableEnvs ` +
-            `[${this.availableEnvs.join(', ')}]`,
+            `[${this.#availableEnvs.join(', ')}]`,
         );
       }
-      env = this.fallbackEnv;
+      env = this.#fallbackEnv;
     }
 
-    const hierarchy = env === this.baseEnv ? [this.baseEnv] : [this.baseEnv, env];
+    const hierarchy = env === this.#baseEnv ? [this.#baseEnv] : [this.#baseEnv, env];
     let result = {};
     for (const name of hierarchy) {
-      const layer = this._loadLayer(name);
-      result = this.deepMerge ? mergeDeep(result, layer) : Object.assign(result, layer);
+      const layer = this.#loadLayer(name);
+      result = this.deepMerge ? mergeDeep(result, layer) : Object.assign({}, result, layer);
     }
     result.environment = hierarchy[hierarchy.length - 1];
     return result;
   }
 
   /**
-   * @param {string | undefined} environment
-   * @returns {boolean}
-   */
-  _isEnvironmentAvailable(environment) {
-    return typeof environment === 'string' && this.availableEnvs.includes(environment);
-  }
-
-  /**
    * @param {string} name
    * @returns {Record<string, unknown>}
    */
-  _loadLayer(name) {
-    const fullPath = path.resolve(this.configDir, name);
+  #loadLayer(name) {
+    const fullPath = path.resolve(this.#configDir, name);
     let loaded;
     try {
       loaded = requireFromHere(fullPath);
@@ -150,23 +162,35 @@ export class Mconf {
         { cause: e },
       );
     }
-    const value =
-      loaded && typeof loaded === 'object' && 'default' in loaded ? loaded.default : loaded;
+    // Unwrap transpiled ESM modules (Babel/TS output) where the actual value
+    // sits behind a `default` field marked by the `__esModule` flag. Plain CJS
+    // configs that legitimately export a `default` key are left untouched.
+    const value = isInteropEsm(loaded) ? loaded.default : loaded;
     if (!isPlainObject(value)) {
       throw new TypeError(
         `Mconf: config "${name}" must export a plain object, got ${describe(value)}`,
       );
+    }
+    for (const reserved of RESERVED_RESULT_KEYS) {
+      if (Object.hasOwn(value, reserved)) {
+        throw new Error(
+          `Mconf: config "${name}" must not declare reserved key "${reserved}" — it is injected by getConfig()`,
+        );
+      }
     }
     return value;
   }
 }
 
 /**
- * @param {unknown} target
+ * Deep-merge `source` on top of `target` into a freshly allocated object.
+ * Neither argument is mutated.
+ * @param {Record<string, unknown> | unknown} target
  * @param {Record<string, unknown>} source
+ * @returns {Record<string, unknown>}
  */
 function mergeDeep(target, source) {
-  const out = isPlainObject(target) ? target : {};
+  const out = isPlainObject(target) ? { ...target } : {};
   for (const key of Object.keys(source)) {
     if (FORBIDDEN_KEYS.has(key)) continue;
     const value = source[key];
@@ -187,6 +211,19 @@ function isPlainObject(value) {
   if (value === null || typeof value !== 'object') return false;
   const proto = Object.getPrototypeOf(value);
   return proto === null || proto === Object.prototype;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is { __esModule: true, default: unknown }}
+ */
+function isInteropEsm(value) {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    /** @type {Record<string, unknown>} */ (value).__esModule === true &&
+    'default' in /** @type {object} */ (value)
+  );
 }
 
 /**

@@ -40,7 +40,7 @@ describe('Mconf security', () => {
   });
 
   it('rejects non-string env names at runtime via setEnvName', () => {
-    const m = new Mconf('/tmp', ['develop']);
+    const m = new Mconf('/tmp', ['develop'], { baseEnv: 'develop', fallbackEnv: 'develop' });
     assert.throws(() => m.setEnvName(undefined), /envName must be a non-empty string/);
     assert.throws(() => m.setEnvName(123), /envName must be a non-empty string/);
   });

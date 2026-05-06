@@ -21,32 +21,44 @@ describe('Mconf environment detection', () => {
     });
   });
 
-  it('honours setEnvName', async () => {
+  it('honours setEnvName for env detection in getConfig()', async () => {
     await withCleanEnv(() => {
       process.env.MAIL_ENV = 'rc';
       const m = new Mconf(CONFIGS_DIR, ['production', 'rc', 'develop']).setEnvName('MAIL_ENV');
-      assert.equal(m.getEnvironmentFromGlobalEnv(), 'rc');
+      assert.equal(m.getConfig().environment, 'rc');
     });
   });
 
-  it('exposes setEnv as alias of setEnvName', async () => {
-    await withCleanEnv(() => {
-      process.env.APP_ENV = 'develop';
-      const m = new Mconf(CONFIGS_DIR, ['production', 'develop']).setEnv('APP_ENV');
-      assert.equal(m.envName, 'APP_ENV');
-      assert.equal(m.getEnvironmentFromGlobalEnv(), 'develop');
-    });
-  });
-
-  it('rejects empty envName', () => {
-    const m = new Mconf(CONFIGS_DIR, ['develop']);
+  it('rejects empty envName via setEnvName', () => {
+    const m = new Mconf(CONFIGS_DIR, ['production', 'develop']);
     assert.throws(() => m.setEnvName(''), /envName must be a non-empty string/);
   });
 
-  it('_isEnvironmentAvailable reports membership', () => {
-    const m = new Mconf(CONFIGS_DIR, ['production', 'develop']);
-    assert.equal(m._isEnvironmentAvailable('production'), true);
-    assert.equal(m._isEnvironmentAvailable('staging'), false);
-    assert.equal(m._isEnvironmentAvailable(undefined), false);
+  it('accepts envName via constructor option', async () => {
+    await withCleanEnv(() => {
+      process.env.APP_ENV = 'develop';
+      const cfg = new Mconf(CONFIGS_DIR, ['production', 'develop'], {
+        envName: 'APP_ENV',
+      }).getConfig();
+      assert.equal(cfg.environment, 'develop');
+    });
+  });
+
+  it('throws in strict mode (default) when env is unknown', async () => {
+    await withCleanEnv(() => {
+      process.env.NODE_ENV = 'no-such-env';
+      const m = new Mconf(CONFIGS_DIR, ['production', 'develop']);
+      assert.throws(() => m.getConfig(), /not in availableEnvs/);
+    });
+  });
+
+  it('falls back to develop when strict is disabled and env is unknown', async () => {
+    await withCleanEnv(() => {
+      process.env.NODE_ENV = 'no-such-env';
+      const cfg = new Mconf(CONFIGS_DIR, ['production', 'develop'], {
+        strict: false,
+      }).getConfig();
+      assert.equal(cfg.environment, 'develop');
+    });
   });
 });
