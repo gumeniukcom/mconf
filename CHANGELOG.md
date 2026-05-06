@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
-- **Minimum Node.js is now 18 LTS** (was Node 4).
+- **Minimum Node.js is now 20 LTS** (was Node 4).
 - Library is shipped as a dual **ESM + CJS** package with TypeScript types via
   `dist/index.js`, `dist/index.cjs`, and `dist/index.d.ts`.
 - The class is exposed as a **named export only**: use `import { Mconf } from
@@ -54,8 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `__esModule`-aware unwrapping of transpiled-ESM config files; plain CJS
   configs with a legitimate `default` key are left untouched.
 - `"sideEffects": false` in `package.json` for bundler tree-shaking.
-- GitHub Actions CI matrix (Node 18/20/22 × Ubuntu, plus single-shot
-  macOS/Windows runs), tag-driven release workflow with
+- GitHub Actions CI matrix (Node 20/22/24 × Ubuntu, plus single-shot
+  macOS/Windows runs on Node 22), tag-driven release workflow with
   `npm publish --provenance` via OIDC, and Dependabot.
 
 ### Removed

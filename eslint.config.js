@@ -33,6 +33,13 @@ export default [
     },
   },
   {
+    files: ['scripts/**/*.mjs', 'scripts/**/*.js'],
+    rules: {
+      'no-console': 'off',
+      'n/no-unpublished-import': 'off',
+    },
+  },
+  {
     files: ['test/fixtures/**/*.cjs'],
     languageOptions: {
       sourceType: 'commonjs',

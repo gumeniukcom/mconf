@@ -14,7 +14,7 @@ back a single merged object. Zero runtime dependencies.
 npm install mconf
 ```
 
-Requires **Node.js 18 or newer**.
+Requires **Node.js 20 or newer**.
 
 ## Usage
 
@@ -129,7 +129,7 @@ left untouched.
 
 `2.0.0` is a major bump. Highlights:
 
-- Minimum Node.js raised to **18 LTS**.
+- Minimum Node.js raised to **20 LTS**.
 - Built and shipped as **dual ESM + CJS** with TypeScript types.
 - The class is exposed as a **named export only**: `import { Mconf } from 'mconf'`
   / `const { Mconf } = require('mconf')`. The legacy `require('mconf').default`

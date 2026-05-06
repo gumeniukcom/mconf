@@ -22,8 +22,8 @@
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
-    "test": "node --test --test-reporter=spec 'test/**/*.test.js'",
-    "test:coverage": "c8 --reporter=text --reporter=lcov --check-coverage --lines 95 --functions 95 --branches 90 node --test 'test/**/*.test.js'",
+    "test": "node scripts/run-tests.mjs",
+    "test:coverage": "c8 --reporter=text --reporter=lcov --check-coverage --lines 95 --functions 95 --branches 90 node scripts/run-tests.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
@@ -32,7 +32,7 @@
     "verify": "npm run lint && npm run format:check && npm run test:coverage && npm run build"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "repository": {
     "type": "git",
