@@ -19,11 +19,11 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # Node 24 ships with npm 11.5+, which has Trusted Publishing /
+          # OIDC support baked in — no manual upgrade step required.
+          node-version: 24
           cache: npm
           registry-url: https://registry.npmjs.org
-      - name: Upgrade npm for Trusted Publishing support
-        run: npm install -g npm@latest
       - name: Verify HEAD is on the pushed tag
         run: git describe --exact-match --tags HEAD
       - name: Verify package.json version matches the tag
