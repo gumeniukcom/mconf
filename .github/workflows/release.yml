@@ -19,9 +19,11 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           registry-url: https://registry.npmjs.org
+      - name: Upgrade npm for Trusted Publishing support
+        run: npm install -g npm@latest
       - name: Verify HEAD is on the pushed tag
         run: git describe --exact-match --tags HEAD
       - name: Verify package.json version matches the tag
@@ -34,6 +36,7 @@ jobs:
           fi
       - run: npm ci --ignore-scripts
       - run: npm run verify
+      # Auth: Trusted Publishing via OIDC. Configure once at
+      # https://www.npmjs.com/package/mconf/access -> Trusted Publishers.
+      # No NPM_TOKEN secret is used.
       - run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
